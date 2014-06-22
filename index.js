@@ -63,7 +63,7 @@ yoplait.existingUser('MEATSPAC', '4d45415453504143', function(err, yoUser) {
   var bot = new MeatYo(yoUser)
 
   bot.on('message', function(msg) {
-    var match = /^\s*!yo ([^\s]+)\s*/i.exec(msg.message)
+    var match = /^\s*!yo ([a-z0-9]+)/i.exec(msg.message)
     if (!match || match[1] === undefined) {
       return
     }
