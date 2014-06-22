@@ -68,7 +68,7 @@ yoplait.existingUser('MEATSPAC', '4d45415453504143', function(err, yoUser) {
       return
     }
 
-    var user = match[1]
+    var user = match[1].toUpperCase()
       , self = this
     console.log('=> yoing ' + user)
     yoUser.sendYo(user, yoBack)
@@ -76,18 +76,6 @@ yoplait.existingUser('MEATSPAC', '4d45415453504143', function(err, yoUser) {
     function yoBack(err) {
       if (!err) {
         return self.sendMessage(getSuccessPic(), 'YO ' + user + '!', messageCb)
-      }
-
-      if (err.serverCode == 141 && err.serverError == 'NO SUCH USER') {
-        // since the only legitimately registerable names on Yo are all caps, if the name isn't
-        // all caps, we'll assume the meatspacer was typing lazily and try to uppercase it for
-        // them and re-send
-        var caps = user.toUpperCase()
-        if (caps != user) {
-          console.log('=> autocaps yoing ' + caps)
-          user = caps
-          return yoUser.sendYo(user, yoBack)
-        }
       }
 
       var errorMessage =
