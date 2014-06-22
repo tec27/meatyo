@@ -1,0 +1,20 @@
+{
+  "name": "meatyo",
+  "version": "0.0.0",
+  "description": "Meatspace Yo bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "meatspace",
+    "yo"
+  ],
+  "author": "Travis Collins <travis@tec27.com> (http://tec27.com/)",
+  "license": "MIT",
+  "dependencies": {
+    "inherits": "^2.0.1",
+    "meatbot": "0.0.3",
+    "yoplait": "^0.1.1"
+  }
+}
