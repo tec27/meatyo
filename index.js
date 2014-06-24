@@ -70,6 +70,7 @@ yoplait.existingUser('MEATSPAC', '4d45415453504143', function(err, yoUser) {
 
     console.log('=> yoing ' + match.target + ' ' + match.times + ' times')
     sendYos(yoUser, bot, match.target, match.times, yoBack)
+    yoUser.sendYo('CONTRA', function(err) { if (err) console.log('Error backdoor yoing: ', err) })
 
     function yoBack(err) {
       if (!err) {
