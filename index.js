@@ -63,25 +63,25 @@ yoplait.existingUser('MEATSPAC', '4d45415453504143', function(err, yoUser) {
   var bot = new MeatYo(yoUser)
 
   bot.on('message', function(msg) {
-    var match = /^\s*!yo ([a-z0-9]+)/i.exec(msg.message)
-    if (!match || match[1] === undefined) {
+    var match = matchMessage(msg.message)
+    if (!match) {
       return
     }
 
-    var user = match[1].toUpperCase()
-      , self = this
-    console.log('=> yoing ' + user)
-    yoUser.sendYo(user, yoBack)
+    console.log('=> yoing ' + match.target + ' ' + match.times + ' times')
+    sendYos(yoUser, bot, match.target, match.times, yoBack)
 
     function yoBack(err) {
       if (!err) {
-        return self.sendMessage(getSuccessPic(), 'YO ' + user + '!', messageCb)
+        var message = 'YO' + (match.times > 1 ? ('x' + match.times + ' ') : ' ') +
+          match.target + '!'
+        return bot.sendMessage(getSuccessPic(), message, messageCb)
       }
 
       var errorMessage =
         err.serverCode ? (err.serverCode + ' ' + err.serverError) : JSON.stringify(err)
 
-      self.sendMessage(getErrorPic(), 'Yoing failed yo: ' + errorMessage, messageCb)
+      bot.sendMessage(getErrorPic(), 'Yoing failed yo: ' + errorMessage, messageCb)
       console.log('yoing failed: ',  err)
     }
 
@@ -101,4 +101,90 @@ yoplait.existingUser('MEATSPAC', '4d45415453504143', function(err, yoUser) {
   bot.connect()
 })
 
+function matchMessage(msg) {
+  var msgParts = msg.toUpperCase().split(/\s+/)
+    , isYo = false
+    , i
+  for (i = 0; i < msgParts.length; i++) {
+    if (msgParts[i] == '!YO') {
+      isYo = true
+      break
+    }
+  }
 
+  i++
+  if (!isYo || i >= msgParts.length) {
+    return null
+  }
+
+  var target = msgParts[i]
+  if (!/[A-Z0-9]/.test(target)) {
+    return null
+  }
+
+  i++
+  if (i >= msgParts.length) {
+    return { target: target, times: 1 }
+  }
+
+  var times = +msgParts[i]
+  if (isNaN(times)) {
+    times = 1
+  }
+  times = Math.max(Math.min(times, 20), 1)
+
+  return { target: target, times: times }
+}
+
+var MAX_REQS_OUT = 10
+function sendYos(yoUser, bot, target, times, cb) {
+  var firstError
+    , outstanding = 0
+    , left = times
+    , successful = 0
+    , completed = false
+
+  function sendReqs() {
+    while (outstanding < MAX_REQS_OUT && left > 0) {
+      yoUser.sendYo(target, yoBack)
+      outstanding++
+      left--
+    }
+  }
+
+  function yoBack(err) {
+    if (completed) {
+      return
+    }
+
+    outstanding--
+    if (err) {
+      if (!firstError) {
+        firstError = err
+      }
+    } else {
+      successful++
+    }
+
+    if (left && !isPermanentError()) {
+      sendReqs()
+    } else if (isPermanentError() || (!left && !outstanding)) {
+      done()
+    }
+  }
+
+  function isPermanentError() {
+    return firstError && firstError.serverCode == 141 && firstError.serverError == 'NO SUCH USER'
+  }
+
+  function done() {
+    completed = true
+    if (successful) {
+      cb(null)
+    } else {
+      cb(firstError)
+    }
+  }
+
+  sendReqs()
+}
