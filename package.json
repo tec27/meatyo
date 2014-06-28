@@ -16,6 +16,6 @@
   "dependencies": {
     "inherits": "^2.0.1",
     "meatbot": "0.0.3",
-    "yoplait": "^0.1.1"
+    "yoplait": "^0.3.0"
   }
 }
