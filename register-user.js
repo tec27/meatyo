@@ -1,9 +1,9 @@
 var yoplait = require('yoplait')
 
-var udid = '4d45415453504143' // each byte is a letter of MEATSPAC
-  , username = 'MEATSPAC'
+var udid = '4d45415453504144' // each byte is a letter of MEATSPAC, then +1
+  , username = 'MEATSPAC '
 
-yoplait.newUser(username, udid, function(err, yo) {
+yoplait.signUp(username, udid, udid, function(err, yo) {
   if (err) {
     console.log('error: ', err)
   } else {
