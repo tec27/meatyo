@@ -137,20 +137,24 @@ function matchMessage(msg) {
   return { target: target, times: times }
 }
 
-var MAX_REQS_OUT = 10
+// It feels like they are holding Yo's back to try and coalesce rapid ones into a single one now, so
+// these delays are pretty long (and still might not result in them all going through, the API
+// returns success even when it fails to deliver :( ). In the future we should check again to see
+// if the app allows faster sending.
+var REQ_DELAY = 2000
+  , RETRY_DELAY = 4000
 function sendYos(yoUser, bot, target, times, cb) {
   var firstError
-    , outstanding = 0
     , left = times
     , successful = 0
+    , fails = 0
     , completed = false
+    , calledBack = false
+    , isRetrying = false
 
-  function sendReqs() {
-    while (outstanding < MAX_REQS_OUT && left > 0) {
-      yoUser.sendYo(target, yoBack)
-      outstanding++
-      left--
-    }
+  function sendReq() {
+    yoUser.sendYo(target, yoBack)
+    left--
   }
 
   function yoBack(err) {
@@ -158,20 +162,39 @@ function sendYos(yoUser, bot, target, times, cb) {
       return
     }
 
-    outstanding--
     if (err) {
-      if (!firstError) {
-        firstError = err
+      console.log('error!', err)
+      if (!isRetrying && isRetryableError(err)) {
+        left++
+        isRetrying = true
+        console.log('retrying a failed send...')
+      } else {
+        isRetrying = false
+        fails++
+        if (!firstError) {
+          firstError = err
+        }
       }
     } else {
+      isRetrying = false
       successful++
     }
 
     if (left && !isPermanentError()) {
-      sendReqs()
-    } else if (isPermanentError() || (!left && !outstanding)) {
+      setTimeout(sendReq, isRetrying ? RETRY_DELAY : REQ_DELAY)
+    } else if (isPermanentError() || !left) {
       done()
     }
+
+    // Call back after the first fail/success so we don't make users wait, since Yo's are slow now
+    if (!calledBack) {
+      calledBack = true
+      cb(successful ? null : firstError)
+    }
+  }
+
+  function isRetryableError(err) {
+    return err.serverCode == 141 && err.serverError == 'NO'
   }
 
   function isPermanentError() {
@@ -181,11 +204,15 @@ function sendYos(yoUser, bot, target, times, cb) {
   function done() {
     completed = true
     if (successful) {
-      cb(null)
+      if (fails) {
+        console.log('<= succeeded ' + successful + ', but failed ' + fails + ' times')
+      } else {
+        console.log('<= succeeded ' + successful + ' times')
+      }
     } else {
-      cb(firstError)
+      console.log('<= yoing failed (' + fails + ') ', firstError)
     }
   }
 
-  sendReqs()
+  sendReq()
 }
