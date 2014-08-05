@@ -3,6 +3,8 @@ var inherits = require('inherits')
   , path = require('path')
   , MeatBot = require('meatbot')
   , yoplait = require('yoplait')
+  , http = require('http')
+  , parseUrl = require('url').parse
 
 inherits(MeatYo, MeatBot)
 function MeatYo(yoUser) {
@@ -19,14 +21,17 @@ MeatYo.prototype.respond = function(msg, cb) {
 
 var errorPics = []
   , successPics = []
+  , receivedPics = []
 function loadImages() {
   var URI_PREFIX = 'data:image/gif;base64,'
 
   var errorDir = path.join(__dirname, 'gifs', 'failure')
     , successDir = path.join(__dirname, 'gifs', 'success')
+    , receivedDir = path.join(__dirname, 'gifs', 'received')
 
   var errorFiles = fs.readdirSync(errorDir)
     , successFiles = fs.readdirSync(successDir)
+    , receivedFiles = fs.readdirSync(receivedDir)
 
   errorPics = errorFiles.filter(gifFilter).map(function(filename) {
     return URI_PREFIX + fs.readFileSync(path.join(errorDir, filename), { encoding: 'base64' })
@@ -34,9 +39,13 @@ function loadImages() {
   successPics = successFiles.filter(gifFilter).map(function(filename) {
     return URI_PREFIX + fs.readFileSync(path.join(successDir, filename), { encoding: 'base64' })
   })
+  receivedPics = receivedFiles.filter(gifFilter).map(function(filename) {
+    return URI_PREFIX + fs.readFileSync(path.join(receivedDir, filename), { encoding: 'base64' })
+  })
 
   console.log('Loaded ' + successPics.length + ' success gifs, ' +
-    errorPics.length + ' failure gifs.')
+    errorPics.length + ' failure gifs, ' +
+    receivedPics.length + ' receive gifs.')
 
   function gifFilter(elem) {
     return /\.gif$/i.test(elem)
@@ -51,10 +60,14 @@ function getSuccessPic() {
   return successPics[(Math.random() * successPics.length) | 0]
 }
 
+function getReceivedPic() {
+  return receivedPics[(Math.random() * receivedPics.length) | 0]
+}
+
 loadImages()
 
-var udid = '4d45415453504144'
-yoplait.logIn('MEATSPAC ', udid, udid, function(err, yoUser) {
+var udid = '4d45415453504146'
+yoplait.logIn('MEATSPAC3', udid, udid, function(err, yoUser) {
   if (err) {
     return console.log('error registering yo install: ', err)
   }
@@ -85,20 +98,48 @@ yoplait.logIn('MEATSPAC ', udid, udid, function(err, yoUser) {
       bot.sendMessage(getErrorPic(), 'Yoing failed yo: ' + errorMessage, messageCb)
       console.log('yoing failed: ',  err)
     }
-
-    function messageCb(err) {
-      if (err) {
-        console.log('Error sending meatspace message: ', err)
-      }
-    }
   })
+
+  var rateTokens = 3
+    , TOKEN_TIMEOUT = 30000
+  http.createServer(function(req, res) {
+    res.writeHead(200)
+    res.end()
+    var parsed = parseUrl(req.url, true)
+    if (!parsed.query || !parsed.query.username) {
+      return
+    }
+
+    var yoer = parsed.query.username
+    if (!/^[A-Z][A-Z0-9]*$/.test(yoer)) {
+      return // only real way we can "validate" these Yo's, cause the webhook guarantees are shit
+    }
+    console.log('Received a yo from ' + yoer)
+    if (!rateTokens) {
+      return
+    }
+
+    bot.sendMessage(getReceivedPic(), yoer + ' says \'Yo!\'', messageCb)
+
+    rateTokens--
+    setTimeout(function() {
+      rateTokens++
+    }, TOKEN_TIMEOUT)
+  }).listen(process.env.PORT || 1337).on('listening', function() {
+      console.log('Yo server listening on ' + (process.env.PORT || 1337))
+  })
+
+  function messageCb(err) {
+    if (err) {
+      console.log('Error sending meatspace message: ', err)
+    }
+  }
 
   bot.on('connect', function() {
     console.log('Connected.')
   }).on('disconnect', function() {
     console.log('Disconnected.')
   })
-
   bot.connect()
 })
 
