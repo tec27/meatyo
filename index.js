@@ -81,6 +81,9 @@ yoplait.logIn('MEATSPAC3', udid, udid, function(err, yoUser) {
     if (!match) {
       return
     }
+    if (match.target == 'MEATSPAC3') {
+      return
+    }
 
     console.log('=> yoing ' + match.target + ' ' + match.times + ' times')
     sendYos(yoUser, bot, match.target, match.times, yoBack)
@@ -101,7 +104,7 @@ yoplait.logIn('MEATSPAC3', udid, udid, function(err, yoUser) {
   })
 
   var rateTokens = 3
-    , TOKEN_TIMEOUT = 30000
+    , TOKEN_TIMEOUT = 60000
   http.createServer(function(req, res) {
     res.writeHead(200)
     res.end()
@@ -160,7 +163,7 @@ function matchMessage(msg) {
   }
 
   var target = msgParts[i]
-  if (!/[A-Z0-9]/.test(target)) {
+  if (!/^[A-Z0-9]+$/.test(target)) {
     return null
   }
 
