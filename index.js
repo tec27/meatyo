@@ -183,8 +183,8 @@ function matchMessage(msg) {
 // these delays are pretty long (and still might not result in them all going through, the API
 // returns success even when it fails to deliver :( ). In the future we should check again to see
 // if the app allows faster sending.
-var REQ_DELAY = 2000
-  , RETRY_DELAY = 4000
+var REQ_DELAY = 1000
+  , RETRY_DELAY = 2000
 function sendYos(yoUser, bot, target, times, cb) {
   var firstError
     , left = times
