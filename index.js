@@ -5,6 +5,7 @@ var inherits = require('inherits')
   , yoplait = require('yoplait')
   , http = require('http')
   , parseUrl = require('url').parse
+  , throttle = require('tokenthrottle')({ rate: 1, burst: 3, window: 60000 })
 
 inherits(MeatYo, MeatBot)
 function MeatYo(yoUser) {
@@ -103,8 +104,6 @@ yoplait.logIn('MEATSPAC3', udid, udid, function(err, yoUser) {
     }
   })
 
-  var rateTokens = 3
-    , TOKEN_TIMEOUT = 60000
   http.createServer(function(req, res) {
     res.writeHead(200)
     res.end()
@@ -118,16 +117,15 @@ yoplait.logIn('MEATSPAC3', udid, udid, function(err, yoUser) {
       return // only real way we can "validate" these Yo's, cause the webhook guarantees are shit
     }
     console.log('Received a yo from ' + yoer)
-    if (!rateTokens) {
-      return
-    }
 
-    bot.sendMessage(getReceivedPic(), yoer + ' says \'Yo!\'', messageCb)
+    throttle.rateLimit('yo', function (err, limited) {
+      if (err || limited) {
+        return
+      }
 
-    rateTokens--
-    setTimeout(function() {
-      rateTokens++
-    }, TOKEN_TIMEOUT)
+      bot.sendMessage(getReceivedPic(), yoer + ' says \'Yo!\'', messageCb)
+    })
+
   }).listen(process.env.PORT || 1337).on('listening', function() {
       console.log('Yo server listening on ' + (process.env.PORT || 1337))
   })
